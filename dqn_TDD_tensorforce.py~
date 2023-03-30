@@ -1,0 +1,114 @@
+from tensorforce.agents import DoubleDQN
+
+
+from tensorforce import Agent, Environment
+
+from hetnet import HetNet
+import gym
+from gym import wrappers
+import myenv
+
+import sys
+
+ENV_NAME = 'myenvtdd-v0'
+
+
+sim = HetNet.Simulator()
+
+print("A")
+
+print("B")
+
+# Get the environment and extract the number of actions.
+
+num_user = 3
+num_bs = 3
+
+env_list = []
+for i in range(num_bs):
+    env = Environment.create(
+        environment='gym', level=ENV_NAME, max_episode_timesteps=10000,
+        sim=sim, BStype="SBS", id_x=i, observation_len=num_user, s_seed=i
+    )
+    env_list.append(env)
+
+network_spec=[
+    dict(type='dense', size=num_user, activation='softplus'),
+    dict(type='dense', size=64, activation='softplus'),
+    dict(type='dense', size=32, activation='relu')
+]
+
+
+agent_list = []
+agent_spec = 'double_dqn'
+memory = int(sys.argv[2]); batch_size = int(sys.argv[3]); lr = float(sys.argv[1]); freq = 64#64
+for i in range(num_bs):
+    agent = Agent.create(
+        agent='double_dqn',
+        states=env_list[i].states(),
+        actions=env_list[i].actions(),
+        memory=memory,
+        batch_size=batch_size,
+        exploration=0.1,#0.05,
+        variable_noise=0.1,
+        parallel_interactions=1,
+        # learning_rate=dict(type='exponential', unit='episodes', num_steps=50, initial_value=lr, decay_rate=0.8),
+        learning_rate=lr,
+        # discount=1.,
+        discount=0.95,
+        update_frequency=freq,
+        network=network_spec,
+        config=dict(seed=i)#{'seed': 0}
+        )
+    agent_list.append(agent)
+
+for i in range(num_user):
+    sim.add_ue(i, "Ped")
+    #sim.add_ue(i, "Veh")
+sim.execute()
+
+
+print("B2")
+
+
+for i in range(10):
+
+    print("i:"+str(i))
+
+    # Initialize episode
+    observation_list = []
+    for i in range(num_bs):
+        observation = env_list[i].reset()
+        print("states:"+str(observation)+str(i))
+        observation_list.append(observation)
+    terminal = False
+
+    print("C")
+
+    while not terminal:
+        # Episode timestep
+        actions_list = []
+        for i in range(num_bs):
+            actions = agent_list[i].act(states=observation_list[i])
+            actions_list.append(actions)
+            print("SBS action"+str(i)+":"+str(actions))
+        print("D")
+        #states, terminal, reward = env.execute(actions=actions)
+        for i in range(num_bs):
+            observation, terminal, reward=env_list[i].execute(actions=actions_list[i])
+        print("D-2")
+        sim.execute()
+        print("E")
+        observation_list = []
+        reward_list = []
+        for i in range(num_bs):
+            observation, terminal, reward=env_list[i].execute(actions=actions_list[i])
+            observation_list.append(observation)
+            reward_list.append(reward)
+            print("SBS"+str(i)+" observation:"+str(observation))
+            print("SBS"+str(i)+" reward:"+str(reward))
+        for i in range(num_bs):        
+            agent_list[i].observe(terminal=terminal, reward=reward_list[i])
+
+print("F")
+

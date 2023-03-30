@@ -1,0 +1,11 @@
+
+#python3 dqn_TDD_tensorforce_conventional.py > log_conv.txt
+#python3 dqn_TDD_tensorforce_schemeD.py > log_schD.txt
+#python3 dqn_TDD_tensorforce_DRL.py > log_DRL.txt
+
+python3 dqn_TDD_tensorforce_DRL_mobility.py > log_DRL_mob.txt
+python3 dqn_TDD_tensorforce_DRL_mobility_MVG.py > log_DRL_mob_MVG.txt
+python3 dqn_TDD_tensorforce_conv_mobility.py > log_conv_mob.txt
+python3 dqn_TDD_tensorforce_random_mobility.py > log_rand_mob.txt
+
+
